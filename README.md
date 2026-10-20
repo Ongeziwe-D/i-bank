@@ -12,6 +12,41 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+The dashboard requires signing in. During development the login endpoint is mocked
+(`src/app/core/auth/mock-auth.interceptor.ts`) and accepts this demo account:
+
+- Email: `john.doe@email.com`
+- Password: `Password123!`
+
+## Running with Docker
+
+The image builds the app and serves it with nginx on port 8080.
+
+Demo build, with the mock login and sample data (no backend needed):
+
+```bash
+docker build --build-arg BUILD_CONFIGURATION=demo -t i-bank:demo .
+docker run --rm -p 8080:8080 i-bank:demo
+```
+
+Production build, which calls the real API. nginx forwards `/api` requests unchanged to
+`API_UPSTREAM`. Without it, `/api` returns 503:
+
+```bash
+docker build -t i-bank .
+docker run --rm -p 8080:8080 -e API_UPSTREAM=http://host.docker.internal:3000 i-bank
+```
+
+Then open `http://localhost:8080/`.
+
+If the build fails with `self-signed certificate in certificate chain` (a corporate proxy
+re-signing HTTPS traffic), export your company's root CA certificate as a PEM file and pass it
+as a build secret:
+
+```bash
+docker build --secret id=ca,src=company-root-ca.pem --build-arg BUILD_CONFIGURATION=demo -t i-bank:demo .
+```
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:

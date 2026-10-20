@@ -1,0 +1,57 @@
+@let isHandset = this.isHandset();
+
+<mat-sidenav-container class="sidenav-container">
+  <mat-sidenav
+    #drawer
+    class="sidenav"
+    fixedInViewport
+    [attr.role]="isHandset ? 'dialog' : 'navigation'"
+    [mode]="isHandset ? 'over' : 'side'"
+    [opened]="isHandset === false"
+  >
+    <mat-toolbar>Menu</mat-toolbar>
+    <mat-nav-list>
+      <a
+        mat-list-item
+        routerLink="/dashboard"
+        routerLinkActive
+        #dashboardLink="routerLinkActive"
+        [activated]="dashboardLink.isActive"
+        (click)="isHandset && drawer.close()"
+      >
+        <mat-icon matListItemIcon>dashboard</mat-icon>
+        <span matListItemTitle>Dashboard</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <mat-toolbar>
+      @if (isHandset) {
+        <button type="button" aria-label="Toggle sidenav" matIconButton (click)="drawer.toggle()">
+          <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
+        </button>
+      }
+      <span>Welcome to i-bank</span>
+      <span class="toolbar-spacer"></span>
+      @if (customer(); as customer) {
+        <div class="customer-details">
+          @if (!isHandset) {
+            <span class="customer-name">{{ customer.name }}</span>
+          }
+          <span class="customer-id">Customer ID: {{ customer.customerId }}</span>
+        </div>
+      }
+      @if (isHandset) {
+        <button type="button" matIconButton aria-label="Sign out" (click)="signOut()">
+          <mat-icon>logout</mat-icon>
+        </button>
+      } @else {
+        <button type="button" matButton (click)="signOut()">
+          <mat-icon>logout</mat-icon>
+          Sign out
+        </button>
+      }
+    </mat-toolbar>
+    <router-outlet />
+  </mat-sidenav-content>
+</mat-sidenav-container>

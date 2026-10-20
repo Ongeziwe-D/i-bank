@@ -1,0 +1,67 @@
+@let email = form.controls.email;
+@let password = form.controls.password;
+
+<main class="login-page">
+  <mat-card class="login-card" appearance="outlined">
+    @if (submitting()) {
+      <mat-progress-bar mode="indeterminate" class="login-progress" />
+    }
+
+    <mat-card-header>
+      <mat-icon mat-card-avatar class="brand-icon" aria-hidden="true">account_balance</mat-icon>
+      <mat-card-title><h1>Sign in to i-bank</h1></mat-card-title>
+      <mat-card-subtitle>View your spending insights</mat-card-subtitle>
+    </mat-card-header>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <mat-card-content class="login-fields">
+        @if (errorMessage(); as message) {
+          <div class="login-error" role="alert">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ message }}</span>
+          </div>
+        }
+
+        <mat-form-field appearance="outline">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email" autocomplete="username" required />
+          @if (email.hasError('required')) {
+            <mat-error>Enter your email address</mat-error>
+          } @else if (email.hasError('email')) {
+            <mat-error>Enter a valid email address</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            formControlName="password"
+            autocomplete="current-password"
+            required
+            [type]="hidePassword() ? 'password' : 'text'"
+          />
+          <button
+            type="button"
+            matIconButton
+            matSuffix
+            [attr.aria-label]="hidePassword() ? 'Show password' : 'Hide password'"
+            [attr.aria-pressed]="!hidePassword()"
+            (click)="hidePassword.set(!hidePassword())"
+          >
+            <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
+          </button>
+          @if (password.hasError('required')) {
+            <mat-error>Enter your password</mat-error>
+          }
+        </mat-form-field>
+      </mat-card-content>
+
+      <mat-card-actions>
+        <button matButton="filled" type="submit" class="login-submit" [disabled]="submitting()">
+          {{ submitting() ? 'Signing in…' : 'Sign in' }}
+        </button>
+      </mat-card-actions>
+    </form>
+  </mat-card>
+</main>

@@ -1,0 +1,254 @@
+<div class="grid-container">
+  <div class="dashboard-header">
+    <h1 class="mat-h1">Spending insights</h1>
+    <mat-button-toggle-group
+      aria-label="Spending period"
+      hideSingleSelectionIndicator
+      [value]="period()"
+      (change)="selectPeriod($event.value)"
+    >
+      @for (preset of presets(); track preset.value) {
+        <mat-button-toggle [value]="preset.value">{{ preset.label }}</mat-button-toggle>
+      }
+    </mat-button-toggle-group>
+  </div>
+
+  <mat-grid-list cols="2" rowHeight="350px">
+    @for (card of cards(); track card.id) {
+      @let resource = resources[card.id];
+      <mat-grid-tile [colspan]="card.cols" [rowspan]="card.rows">
+        <mat-card class="dashboard-card">
+          <mat-card-header>
+            <mat-card-title>
+              {{ card.title }}
+              <button
+                matIconButton
+                class="more-button"
+                [matMenuTriggerFor]="menu"
+                aria-label="Card options"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu" xPosition="before">
+                <button mat-menu-item (click)="resource.reload()">
+                  <mat-icon>refresh</mat-icon>
+                  <span>Refresh</span>
+                </button>
+              </mat-menu>
+            </mat-card-title>
+            @if (card.id === 'summary' || card.id === 'categories') {
+              <mat-card-subtitle>{{ periodLabel() }}</mat-card-subtitle>
+            }
+          </mat-card-header>
+          <mat-card-content class="dashboard-card-content">
+            @if (resource.error()) {
+              <div class="card-state" role="alert">
+                <p>Couldn't load this card.</p>
+                <button matButton (click)="resource.reload()">Try again</button>
+              </div>
+            } @else if (resource.isLoading() && !resource.hasValue()) {
+              <div class="card-state">
+                <mat-spinner diameter="40" aria-label="Loading" />
+              </div>
+            } @else {
+              @switch (card.id) {
+                @case ('profile') {
+                  @if (profile.value(); as customer) {
+                    <p class="customer-name">{{ customer.name }}</p>
+                    <p class="muted">{{ customer.email }}</p>
+                    <dl class="facts">
+                      <div>
+                        <dt>Account</dt>
+                        <dd>{{ customer.accountType | titlecase }}</dd>
+                      </div>
+                      <div>
+                        <dt>Customer since</dt>
+                        <dd>{{ customer.joinDate | date: 'mediumDate' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Total spent</dt>
+                        <dd>
+                          {{ customer.totalSpent | currency: customer.currency : 'symbol-narrow' }}
+                        </dd>
+                      </div>
+                    </dl>
+                  }
+                }
+                @case ('summary') {
+                  @if (summary.value(); as s) {
+                    <p class="hero-number">
+                      {{ s.totalSpent | currency: currency() : 'symbol-narrow' }}
+                    </p>
+                    <p class="change">
+                      <mat-icon aria-hidden="true">{{
+                        s.comparedToPrevious.spentChange >= 0 ? 'trending_up' : 'trending_down'
+                      }}</mat-icon>
+                      {{ s.comparedToPrevious.spentChange > 0 ? '+' : ''
+                      }}{{ s.comparedToPrevious.spentChange | number: '1.0-1' }}% vs previous period
+                    </p>
+                    <dl class="facts">
+                      <div>
+                        <dt>Transactions</dt>
+                        <dd>
+                          {{ s.transactionCount }}
+                          <span class="muted"
+                            >({{ s.comparedToPrevious.transactionChange > 0 ? '+' : ''
+                            }}{{ s.comparedToPrevious.transactionChange | number: '1.0-1' }}%)</span
+                          >
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Average</dt>
+                        <dd>{{ s.averageTransaction | currency: currency() : 'symbol-narrow' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Top category</dt>
+                        <dd>{{ s.topCategory }}</dd>
+                      </div>
+                    </dl>
+                  }
+                }
+                @case ('trends') {
+                  @if (selectedTrend(); as selected) {
+                    <p class="trend-readout" aria-live="polite">
+                      <strong>{{ selected.date | date: 'MMMM y' }}:</strong>
+                      {{ selected.totalSpent | currency: currency() : 'symbol-narrow' }} ·
+                      {{ selected.transactionCount }} transactions · avg
+                      {{ selected.averageTransaction | currency: currency() : 'symbol-narrow' }}
+                    </p>
+                    <ul class="trend-chart" aria-label="Total spent per month">
+                      @for (bar of trendBars(); track bar.month) {
+                        <li
+                          class="trend-column"
+                          tabindex="0"
+                          [class.selected]="bar.month === selected.month"
+                          [attr.aria-label]="
+                            (bar.date | date: 'MMMM y') +
+                            ': ' +
+                            (bar.totalSpent | currency: currency() : 'symbol-narrow')
+                          "
+                          (mouseenter)="selectedTrendMonth.set(bar.month)"
+                          (focus)="selectedTrendMonth.set(bar.month)"
+                        >
+                          <div class="trend-track">
+                            <div class="trend-bar" [style.height.%]="bar.heightPercent"></div>
+                          </div>
+                          <span class="trend-label" aria-hidden="true">{{
+                            bar.date | date: 'MMM'
+                          }}</span>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="muted">No spending history yet.</p>
+                  }
+                }
+                @case ('categories') {
+                  @if (categories.value(); as breakdown) {
+                    <p class="muted">
+                      {{ breakdown.dateRange.startDate | date: 'mediumDate' }} –
+                      {{ breakdown.dateRange.endDate | date: 'mediumDate' }} ·
+                      {{ breakdown.totalAmount | currency: currency() : 'symbol-narrow' }} total
+                    </p>
+                    <ul class="category-list">
+                      @for (category of sortedCategories(); track category.name) {
+                        <li class="category-row">
+                          <mat-icon
+                            class="category-icon"
+                            [style.color]="category.color"
+                            aria-hidden="true"
+                            >{{ toMaterialIcon(category.icon) }}</mat-icon
+                          >
+                          <div class="category-detail">
+                            <div class="category-text">
+                              <span>{{ category.name }}</span>
+                              <span>
+                                {{ category.amount | currency: currency() : 'symbol-narrow' }}
+                                <span class="muted"
+                                  >{{ category.percentage | number: '1.0-1' }}%</span
+                                >
+                              </span>
+                            </div>
+                            <div class="category-track" aria-hidden="true">
+                              <div
+                                class="category-bar"
+                                [style.width.%]="(category.amount / maxCategoryAmount()) * 100"
+                                [style.background]="category.color"
+                              ></div>
+                            </div>
+                            <span class="muted small"
+                              >{{ category.transactionCount }} transactions</span
+                            >
+                          </div>
+                        </li>
+                      } @empty {
+                        <li class="muted">No spending in this period.</li>
+                      }
+                    </ul>
+                  }
+                }
+                @case ('goals') {
+                  @for (goal of goals.value()?.goals; track goal.id) {
+                    <div class="goal">
+                      <div class="goal-text">
+                        <span>{{ goal.category }}</span>
+                        <span class="goal-status">
+                          @switch (goal.status) {
+                            @case ('on_track') {
+                              <mat-icon aria-hidden="true">check_circle</mat-icon> On track
+                            }
+                            @case ('warning') {
+                              <mat-icon aria-hidden="true">warning</mat-icon> Near limit
+                            }
+                            @default {
+                              <mat-icon aria-hidden="true">info</mat-icon> {{ goal.status }}
+                            }
+                          }
+                        </span>
+                      </div>
+                      <mat-progress-bar
+                        mode="determinate"
+                        [value]="goal.percentageUsed"
+                        [attr.aria-label]="goal.category + ' budget used'"
+                      />
+                      <span class="muted small">
+                        {{ goal.currentSpent | currency: currency() : 'symbol-narrow' }} of
+                        {{ goal.monthlyBudget | currency: currency() : 'symbol-narrow' }} ·
+                        {{ goal.daysRemaining }} days left
+                      </span>
+                    </div>
+                  } @empty {
+                    <p class="muted">No spending goals set.</p>
+                  }
+                }
+                @case ('transactions') {
+                  <mat-list>
+                    @for (tx of transactions.value()?.transactions; track tx.id) {
+                      <mat-list-item>
+                        <mat-icon
+                          matListItemIcon
+                          [style.color]="tx.categoryColor"
+                          aria-hidden="true"
+                          >{{ toMaterialIcon(tx.icon) }}</mat-icon
+                        >
+                        <span matListItemTitle>{{ tx.merchant }}</span>
+                        <span matListItemLine
+                          >{{ tx.date | date: 'mediumDate' }} · {{ tx.category }}</span
+                        >
+                        <span matListItemMeta>{{
+                          tx.amount | currency: currency() : 'symbol-narrow'
+                        }}</span>
+                      </mat-list-item>
+                    } @empty {
+                      <p class="muted">No transactions yet.</p>
+                    }
+                  </mat-list>
+                }
+              }
+            }
+          </mat-card-content>
+        </mat-card>
+      </mat-grid-tile>
+    }
+  </mat-grid-list>
+</div>
