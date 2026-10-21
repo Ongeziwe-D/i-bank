@@ -13,7 +13,7 @@
     </mat-button-toggle-group>
   </div>
 
-  <mat-grid-list cols="2" rowHeight="350px">
+  <mat-grid-list [cols]="columns()" rowHeight="350px">
     @for (card of cards(); track card.id) {
       @let resource = resources[card.id];
       <mat-grid-tile [colspan]="card.cols" [rowspan]="card.rows">
@@ -40,7 +40,13 @@
               <mat-card-subtitle>{{ periodLabel() }}</mat-card-subtitle>
             }
           </mat-card-header>
-          <mat-card-content class="dashboard-card-content">
+          <!-- Focusable so keyboard users can scroll content that overflows the card. -->
+          <mat-card-content
+            class="dashboard-card-content"
+            tabindex="0"
+            role="region"
+            [attr.aria-label]="card.title"
+          >
             @if (resource.error()) {
               <div class="card-state" role="alert">
                 <p>Couldn't load this card.</p>
@@ -172,7 +178,11 @@
                             <div class="category-track" aria-hidden="true">
                               <div
                                 class="category-bar"
-                                [style.width.%]="(category.amount / maxCategoryAmount()) * 100"
+                                [style.width.%]="
+                                  maxCategoryAmount()
+                                    ? (category.amount / maxCategoryAmount()) * 100
+                                    : 0
+                                "
                                 [style.background]="category.color"
                               ></div>
                             </div>

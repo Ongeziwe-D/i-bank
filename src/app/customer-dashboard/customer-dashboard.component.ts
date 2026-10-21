@@ -137,23 +137,25 @@ export class CustomerDashboardComponent {
     return bars.find((b) => b.month === this.selectedTrendMonth()) ?? bars.at(-1);
   });
 
-  /** Based on the screen size, switch from standard to one column per row */
-  readonly cards = toSignal(
-    this.breakpointObserver.observe(Breakpoints.Handset).pipe(
-      map(({ matches }): DashboardCard[] => {
-        const wide = matches ? 1 : 2;
-        return [
-          { id: 'profile', title: 'Profile', cols: 1, rows: 1 },
-          { id: 'summary', title: 'Spending summary', cols: 1, rows: 1 },
-          { id: 'trends', title: 'Monthly spending', cols: wide, rows: 1 },
-          { id: 'categories', title: 'Spending by category', cols: 1, rows: 2 },
-          { id: 'goals', title: 'Spending goals', cols: 1, rows: 1 },
-          { id: 'transactions', title: 'Recent transactions', cols: 1, rows: 1 },
-        ];
-      }),
-    ),
-    { initialValue: [] },
+  private readonly isHandset = toSignal(
+    this.breakpointObserver.observe(Breakpoints.Handset).pipe(map(({ matches }) => matches)),
+    { initialValue: false },
   );
+
+  /** Two columns on larger screens, one card per row on phones. */
+  readonly columns = computed(() => (this.isHandset() ? 1 : 2));
+
+  readonly cards = computed((): DashboardCard[] => {
+    const wide = this.columns();
+    return [
+      { id: 'profile', title: 'Profile', cols: 1, rows: 1 },
+      { id: 'summary', title: 'Spending summary', cols: 1, rows: 1 },
+      { id: 'trends', title: 'Monthly spending', cols: wide, rows: 1 },
+      { id: 'categories', title: 'Spending by category', cols: 1, rows: 2 },
+      { id: 'goals', title: 'Spending goals', cols: 1, rows: 1 },
+      { id: 'transactions', title: 'Recent transactions', cols: 1, rows: 1 },
+    ];
+  });
 
   selectPeriod(period: SpendingPeriod): void {
     this.period.set(period);

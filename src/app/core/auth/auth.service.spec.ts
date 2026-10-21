@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Router, provideRouter } from '@angular/router';
 import { API_BASE_URL } from '../api-base-url';
 import { LoginResponse } from './auth.models';
 import { AuthService } from './auth.service';
@@ -24,6 +25,7 @@ describe('AuthService', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
         { provide: API_BASE_URL, useValue: 'https://bank.example/api' },
       ],
     });
@@ -88,5 +90,53 @@ describe('AuthService', () => {
 
     expect(service.isAuthenticated()).toBe(false);
     expect(sessionStorage.getItem('i-bank.session')).toBeNull();
+  });
+
+  describe('when the session expires', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    function signIn(service: AuthService): void {
+      service.login({ email: 'jane@example.com', password: 'secret' }).subscribe();
+      httpTesting.expectOne('https://bank.example/api/auth/login').flush(LOGIN_RESPONSE);
+    }
+
+    it('signs out and sends the customer to the login page', () => {
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      const service = createService();
+      signIn(service);
+
+      vi.advanceTimersByTime(LOGIN_RESPONSE.expiresIn * 1000 - 1);
+      expect(service.isAuthenticated()).toBe(true);
+
+      vi.advanceTimersByTime(1);
+      expect(service.session()).toBeNull();
+      expect(sessionStorage.getItem('i-bank.session')).toBeNull();
+      expect(navigate).toHaveBeenCalledWith(['/login'], { queryParams: { returnUrl: '/' } });
+    });
+
+    it('also expires a session restored from storage', () => {
+      sessionStorage.setItem(
+        'i-bank.session',
+        JSON.stringify({ ...LOGIN_RESPONSE, expiresAt: Date.now() + 60_000 }),
+      );
+      vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      const service = createService();
+
+      vi.advanceTimersByTime(60_000);
+
+      expect(service.session()).toBeNull();
+    });
+
+    it('does nothing more once the customer has signed out', () => {
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      const service = createService();
+      signIn(service);
+      service.logout();
+
+      vi.advanceTimersByTime(LOGIN_RESPONSE.expiresIn * 1000);
+
+      expect(navigate).not.toHaveBeenCalled();
+    });
   });
 });

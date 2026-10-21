@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth/auth.guards';
-import { DashboardNavigationComponent } from './dashboard-navigation/dashboard-navigation.component';
 
 export const routes: Routes = [
   {
@@ -12,7 +11,10 @@ export const routes: Routes = [
   {
     // Everything inside the navigation shell requires a signed-in customer.
     path: '',
-    component: DashboardNavigationComponent,
+    loadComponent: () =>
+      import('./dashboard-navigation/dashboard-navigation.component').then(
+        (m) => m.DashboardNavigationComponent,
+      ),
     canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },

@@ -8,3 +8,6 @@ coverage
 *.log
 Dockerfile
 .dockerignore
+.github
+test-results
+playwright-report

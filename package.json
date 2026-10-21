@@ -7,7 +7,12 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "icons": "node scripts/update-icon-font.mjs",
+    "test:ci": "ng test --watch=false",
+    "format:check": "prettier --check \"src/**/*.{ts,html,scss}\" e2e scripts playwright.config.ts",
+    "e2e": "playwright test",
+    "e2e:typecheck": "tsc -p e2e/tsconfig.json"
   },
   "private": true,
   "packageManager": "npm@10.9.9",
@@ -20,6 +25,7 @@
     "@angular/material": "^22.2.3",
     "@angular/platform-browser": "^22.2.0",
     "@angular/router": "^22.2.0",
+    "@fontsource/roboto": "5.3.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
@@ -27,7 +33,10 @@
     "@angular/build": "^22.2.2",
     "@angular/cli": "^22.2.2",
     "@angular/compiler-cli": "^22.2.0",
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.5",
     "angular-eslint": "22.6.0",
     "eslint": "^10.12.0",
     "jsdom": "^30.0.0",

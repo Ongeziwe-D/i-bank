@@ -1,5 +1,10 @@
 .grid-container {
   margin: 20px;
+
+  // Phones (matches CDK Breakpoints.HandsetPortrait): give the content the width back.
+  @media (max-width: 599.98px) {
+    margin: 12px 4px;
+  }
 }
 
 .dashboard-header {
@@ -9,6 +14,13 @@
   justify-content: space-between;
   gap: 12px;
   margin: 0 15px;
+
+  // If the period labels still don't fit (long labels, large text), scroll them sideways
+  // rather than pushing options off screen.
+  mat-button-toggle-group {
+    max-width: 100%;
+    overflow-x: auto;
+  }
 }
 
 .dashboard-card {

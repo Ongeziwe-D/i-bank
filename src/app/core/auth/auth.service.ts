@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { API_BASE_URL } from '../api-base-url';
@@ -12,14 +13,23 @@ export const AUTH_ENDPOINTS = {
 
 const STORAGE_KEY = 'i-bank.session';
 
+// setTimeout fires immediately for delays above 2^31 - 1 ms (about 24.8 days).
+const MAX_TIMER_DELAY = 2_147_483_647;
+
 /** Signs the customer in and out, and keeps the session for the lifetime of the browser tab. */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
   private readonly baseUrl = inject(API_BASE_URL);
 
-  private readonly currentSession = signal<AuthSession | null>(restoreSession());
+  private readonly currentSession = signal<AuthSession | null>(null);
   readonly session = this.currentSession.asReadonly();
+  private expiryTimer: ReturnType<typeof setTimeout> | undefined;
+
+  constructor() {
+    this.setSession(restoreSession());
+  }
 
   isAuthenticated(): boolean {
     const session = this.session();
@@ -35,16 +45,32 @@ export class AuthService {
           expiresAt: Date.now() + expiresIn * 1000,
           customer,
         })),
-        tap((session) => {
-          this.currentSession.set(session);
-          writeStorage(JSON.stringify(session));
-        }),
+        tap((session) => this.setSession(session)),
       );
   }
 
   logout(): void {
-    this.currentSession.set(null);
-    writeStorage(null);
+    this.setSession(null);
+  }
+
+  /**
+   * Ends a session that is no longer valid (it expired, or the API rejected the token) and sends
+   * the customer to the login page, returning them to where they were once they sign in again.
+   */
+  expire(): void {
+    this.logout();
+    void this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+  }
+
+  private setSession(session: AuthSession | null): void {
+    this.currentSession.set(session);
+    writeStorage(session && JSON.stringify(session));
+
+    // Sign out when the token expires, so account details don't stay on screen afterwards.
+    clearTimeout(this.expiryTimer);
+    this.expiryTimer = session
+      ? setTimeout(() => this.expire(), Math.min(session.expiresAt - Date.now(), MAX_TIMER_DELAY))
+      : undefined;
   }
 }
 
